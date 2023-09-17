@@ -1,0 +1,117 @@
+local TabletPopUp = script.Parent
+local Tablet = TabletPopUp:WaitForChild("Tablet")
+local CalendarFrame = Tablet:WaitForChild("Calendar")
+local Calendar = CalendarFrame:WaitForChild("Calendar")
+
+local DetailSchedule = CalendarFrame:WaitForChild("DetailSchedule")
+local SchduleTemp = DetailSchedule:WaitForChild("ScheduleTemp")
+local Date = SchduleTemp:WaitForChild("Date")
+local Schdule = SchduleTemp:WaitForChild("Schedule")
+local DateText = Date:WaitForChild("TextLabel")
+local ContentText = Schdule:WaitForChild("TextLabel")
+
+local Month = Calendar:WaitForChild("Month")
+local NextMonthButton = Month:WaitForChild("NextMonth")
+local LastMonthButton = Month:WaitForChild("LastMonth")
+local MonthText = Month:WaitForChild("Month")
+local YearText = Month:WaitForChild("Year")
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ModuleScripts = ReplicatedStorage:WaitForChild("ModuleScripts")
+local ScheduleModule = require(ModuleScripts:WaitForChild("ScheduleModule"))
+
+ScheduleData= ScheduleModule.ScheduleTable
+
+local MonthStr = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+
+-- 데이터 저장
+function saveScheduleData()
+	local Data = {}
+	local MonthIdx = tonumber(string.sub(MonthText.Text, 1, 2))
+
+	for k, v in pairs(ScheduleData) do
+		local FirstLetter = string.sub(k, 1, 3)
+		if FirstLetter == MonthStr[MonthIdx] then
+			table.insert(Data, {k, v})
+		end
+	end
+
+	-- 월 별 사진 교체 기능 추가 예정
+
+	return Data
+end
+
+-- 데이터 조회
+function getScheduleData(Data)
+	-- 정렬
+	table.sort(Data, function(a, b)
+		return a[1] < b[1]
+	end)
+	
+	DateText.Text = Data[1][2]["Date"]
+	ContentText.Text = Data[1][2]["Content"]
+
+	for i = 2, #Data do
+		local CopyTemp = SchduleTemp:Clone()
+		CopyTemp.Parent = DetailSchedule
+		CopyTemp.Name = "CopiedTemp"
+		
+		local DateText = CopyTemp:WaitForChild("Date"):WaitForChild("TextLabel")
+		local ContentText = CopyTemp:WaitForChild("Schedule"):WaitForChild("TextLabel")
+		
+		DateText.Text = Data[i][2]["Date"]
+		ContentText.Text = Data[i][2]["Content"]
+	end
+end
+
+-- 9월 스케줄 저장 및 조회
+Data = saveScheduleData()
+getScheduleData(Data)
+
+-- 다음 달 선택 (.은 따로 빼달라고 요청할 예정)
+NextMonthButton.MouseButton1Click:Connect(function()
+	local Year = tonumber(YearText.Text)
+	local Month = tonumber(MonthText.Text)
+	if Month == 12 then
+		YearText.Text = tostring(Year+1)
+		MonthText.Text = "1"
+	else
+		MonthText.Text = tostring(Month+1)
+	end
+
+	-- Clone한 일정표 삭제
+	local DetailChildren = DetailSchedule:GetChildren()
+	for k, v in pairs(DetailChildren) do
+		if v.Name == "CopiedTemp" then
+			v:Destroy()
+		end
+	end
+
+	-- 다음 달 데이터 저장 및 조회
+	Data = saveScheduleData()
+	getScheduleData(Data)
+end)
+
+-- 이전 달 선택
+LastMonthButton.MouseButton1Click:Connect(function()
+	local Year = tonumber(YearText.Text)
+	local Month = tonumber(MonthText.Text)
+	if Month == 1 then
+		YearText.Text = tostring(Year-1)
+		MonthText.Text = "12"
+	else
+		MonthText.Text = tostring(Month-1)
+	end
+
+	-- Clone한 일정표 삭제
+	local DetailChildren = DetailSchedule:GetChildren()
+	for k, v in pairs(DetailChildren) do
+		if v.Name == "CopiedTemp" then
+			v:Destroy()
+		end
+	end
+
+	-- 이전 달 데이터 저장 및 조회
+	Data = saveScheduleData()
+	getScheduleData(Data)
+end)
